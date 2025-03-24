@@ -1,0 +1,2 @@
+# you really shouldnt compile it this way, you should compile into an AppImage but this works fine for your own system.
+zip -9 -r 3DRenderer.love . && cat /usr/bin/love 3DRenderer.love > 3DRenderer.x86_64 && chmod a+x ./3DRenderer.x86_64
