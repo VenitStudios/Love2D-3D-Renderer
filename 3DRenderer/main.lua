@@ -16,12 +16,14 @@ local process_cycles  = 0
 
 function love.load()
 
-    love.window.setMode(width, height)
     love.window.setTitle("3D Rendering Demo")
     love.graphics.setBackgroundColor(0.4, 0.7, 1.0)
+    
+    love.window.setMode(width, height)
     plr_lib.Window_width_div_2 = width / 2
     plr_lib.Window_height_div_2 = height / 2
-    
+
+
     Create_cube_mesh({1, 1, 1}, {0, 0, 0})
     Create_cube_mesh({1, 2, 1}, {2, 0, 0})
 
@@ -33,8 +35,11 @@ local delta_time = 0
 function Render_frame() 
     vpr_inst.depth_field = vpr_lib.initializeDepthTable(vpr_inst, width * height, 1000)
     
-    screen_buffer = vpr_lib.render_3d(vpr_inst)
+    vpr_inst.width = width
+    vpr_inst.height = height
     
+    screen_buffer = vpr_lib.render_3d(vpr_inst)
+
 end
 
 function Game_process()

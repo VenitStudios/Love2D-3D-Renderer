@@ -2,18 +2,21 @@ local table = require("table")
 
 local viewport_renderer = {}
 
-local window_width_div_2 = love.graphics.getWidth() / 2
-local window_height_div_2 = love.graphics.getHeight() / 2
+Window_width_div_2 = 1
+Window_height_div_2 = 1
 
 local depth_quality = 4
 
-function viewport_renderer.render_3d(renderer)
-    
+function viewport_renderer.render_3d(renderer) 
     local sin_cos = renderer.sin_cos_vector(renderer)
-    
+    Window_width_div_2 = renderer.width / 2
+    Window_height_div_2 = renderer.height / 2
     local sin_vec = sin_cos[1]
     local cos_vec = sin_cos[2]
     local line_points = {}
+
+
+
     for mesh_index, mesh in pairs(renderer.geometry) do
         -- print("drawing mesh", mesh_index, #mesh)
         local faces = mesh.faces
@@ -43,7 +46,7 @@ function viewport_renderer.render_3d(renderer)
                         -- translate by camera
                         local world_x = vert[1] - renderer["cam_position"][1]
                         local world_y = vert[2] - renderer["cam_position"][2]
-                        local world_z = vert[3] - renderer["cam_position"][3] + renderer["cam_rotation"][1]
+                        local world_z = vert[3] - renderer["cam_position"][3]
                         -- translate to rotated types
                         
                         local cos = cos_vec[2]
@@ -53,14 +56,14 @@ function viewport_renderer.render_3d(renderer)
                         local rotated_y = (world_y * cos) + (world_x * sin)
                         
                         verts[i] = {rotated_x, rotated_y, world_z}
-
-                        if rotated_y >= -1 then
+                        
+                        if rotated_y >= -2 then
                             behind_camera = true
                             break 
                         end
 
-                        local screen_x = rotated_x * window_width_div_2 / (rotated_y + 1) + window_height_div_2
-                        local screen_y = world_z * window_width_div_2 / (rotated_y + 1) + window_height_div_2
+                        local screen_x = rotated_x * (renderer.field_of_view * 10) / (rotated_y + 1) + Window_height_div_2
+                        local screen_y = world_z * (renderer.field_of_view * 10) / (rotated_y + 1) + Window_height_div_2
                         
                         table.insert(pixels, {screen_x, screen_y})
                         
@@ -68,7 +71,6 @@ function viewport_renderer.render_3d(renderer)
                     if not behind_camera then
                         renderer.rasterize_tri(renderer, verts, pixels)
                     end
-
                 end
             end
         end
@@ -112,12 +114,11 @@ function viewport_renderer.rasterize_tri(renderer, verts, pixels)
     local pb = pixels[2]
     local pc = pixels[3]
 
-    local x_min = math.floor( math.max(0, math.min(pa[1], pb[1], pc[1])))
-    local y_min = math.floor( math.max(0, math.min(pa[2], pb[2], pc[2])) )
+    local x_min = math.min(pa[1], pb[1], pc[1])
+    local y_min = math.min(pa[2], pb[2], pc[2])
 
-    local x_max = math.floor( math.min( window_width_div_2 * 2, math.max(pa[1], pb[1], pc[1])))
-    local y_max = math.floor( math.min( window_height_div_2 * 2, math.max(pa[2], pb[2], pc[2])))
-    -- print(x_min, x_max, y_min, y_max, x_max - x_min, y_max - y_min, dot_product)
+    local x_max = math.max(pa[1], pb[1], pc[1])
+    local y_max = math.max(pa[2], pb[2], pc[2])
 
     for x = x_min, x_max do
         
@@ -133,19 +134,18 @@ function viewport_renderer.rasterize_tri(renderer, verts, pixels)
                     return     
                 end
 
-                local depth_index = math.floor((pixel[1] * (window_width_div_2 * 2) + pixel[2]) / depth_quality)
+                local depth_index = math.floor((pixel[2] * (renderer.width) + pixel[1]) / depth_quality)
                 if depth_index > 1 then
                     local depth_in_table = renderer["depth_field"][depth_index]
                     if depth_in_table ~= nil then
-                        if vert_depth <= depth_in_table then
+                        if vert_depth <= depth_in_table + 0.05 then
                             renderer["depth_field"][depth_index] = vert_depth
-                            love.graphics.setPointSize(depth_quality - 2)
-                            
-                            -- love.graphics.setColor(dot_product, dot_product, dot_product)
+                            love.graphics.setPointSize(depth_quality - 1)
 
                             if pixel[1] % depth_quality * 2 == 0 and pixel[2] % depth_quality * 2 == 0 then
                                 love.graphics.points({pixel[1], pixel[2] })
                             end
+                            -- love.graphics.points({pixel[1], pixel[2] })
 
                         end
 
@@ -203,6 +203,9 @@ function viewport_renderer.new()
     self.depth_field = {}
 
     self.geometry = {}
+    self.field_of_view = 30
+    self.width = 1152
+    self.width = 648
     -- print("loaded")
     setmetatable(self, { __index = viewport_renderer })
     return self
